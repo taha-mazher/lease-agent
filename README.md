@@ -44,7 +44,7 @@ While no key is set, the page shows a "Demo mode" notice so nobody mistakes the 
 
 **What I could not verify.** I had no API key, so `AnthropicModel` (40 lines in `app/model.py`) is written against the SDK documentation and has not made a live call. Everything else is exercised by the tests through the stub. If the adapter fails on first contact, that file is the only place to look.
 
-**About the sample data.** The brief mentions a sample lease and sample photos. My copy of the pack held only `owner_ruleset.json` and `units.json`, so `samples/synthetic_lease.txt` is a lease I wrote to exercise the rules: it fails R1, R2, R4 and R5, passes R3, R6 and R7, and states the rent two different ways. The stub's pattern matching is tuned to that file. On a different lease the stub will find less and say so through "missing" flags; a real model does not have that limit.
+**About the sample data.** `data/owner_ruleset.json` and `data/units.json` are the files supplied with the exercise, unchanged. `samples/synthetic_lease.txt` is a lease I wrote to exercise the rules: it fails R1, R2, R4 and R5, passes R3, R6 and R7, and states the rent two different ways. The stub's pattern matching is tuned to that file. On a different lease the stub will find less and say so through "missing" flags; a real model does not have that limit.
 
 ## How it works
 
