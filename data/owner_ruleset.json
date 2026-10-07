@@ -1,0 +1,49 @@
+{
+  "ruleset_name": "Marina Crest Holdings — Lease Acceptance Standards",
+  "version": "1.0",
+  "notes": "The agent must validate each extracted lease against these rules and report, for each rule, PASS / FAIL / NOT_DETERMINABLE with a short reason and (where possible) the source clause it relied on.",
+  "rules": [
+    {
+      "id": "R1",
+      "description": "Security deposit must be at least one month's rent.",
+      "check": "deposit_amount >= monthly_rent",
+      "severity": "high"
+    },
+    {
+      "id": "R2",
+      "description": "Lease must contain a defined rent escalation clause (an actual mechanism or percentage, not merely 'as mutually agreed').",
+      "check": "escalation_clause.is_defined == true",
+      "severity": "medium"
+    },
+    {
+      "id": "R3",
+      "description": "Fixed term must not exceed 36 months without owner approval.",
+      "check": "term_months <= 36",
+      "severity": "medium"
+    },
+    {
+      "id": "R4",
+      "description": "Expiry date must be after the commencement date, and the stated term length must match the dates.",
+      "check": "expiry_date > commencement_date AND term_months == months_between(commencement_date, expiry_date)",
+      "severity": "high"
+    },
+    {
+      "id": "R5",
+      "description": "Both parties (landlord and tenant) must be identified and the lease must be signed by both.",
+      "check": "landlord.present AND tenant.present AND landlord.signed AND tenant.signed",
+      "severity": "high"
+    },
+    {
+      "id": "R6",
+      "description": "Annual rent must reconcile with the stated monthly rent (annual == monthly x 12).",
+      "check": "annual_rent == monthly_rent * 12",
+      "severity": "low"
+    },
+    {
+      "id": "R7",
+      "description": "The leased unit must exist in the owner's property/unit records and must be marked available before a new lease is linked.",
+      "check": "unit_id exists in units.json AND unit.status == 'available'",
+      "severity": "high"
+    }
+  ]
+}

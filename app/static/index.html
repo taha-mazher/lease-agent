@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Units, leases and issues</title>
+<style>
+  :root { --line: #d9dee5; --muted: #5b6573; --bg: #f5f7fa; --ink: #16202c; --accent: #1f5fbf; --ok: #1a7f4b; --bad: #b3261e; --warn: #96600a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, sans-serif; color: var(--ink); background: var(--bg); }
+  header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+  h1 { font-size: 24px; margin: 0; } h2 { font-size: 19px; margin: 0 0 8px; } h3 { font-size: 12px; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; padding: 16px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  .split { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+  @media (max-width: 900px) { .layout, .split { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 700px) {  /* tables become stacked rows so the review buttons never sit off screen */
+    .rows table, .rows tbody, .rows tr, .rows td { display: block; } .rows th { display: none; }
+    .rows tr { border-top: 1px solid var(--line); padding: 8px 0; } .rows td { border: 0; padding: 2px 0; }
+    .rows td:first-child { font-weight: 600; } .sticky { position: static; } .doc { max-height: 260px; }
+  }
+  button, input, select, textarea { font: inherit; }
+  button { padding: 5px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; min-height: 32px; }
+  button:hover { border-color: var(--accent); } button:disabled { opacity: .5; cursor: wait; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  button.link { border: 0; padding: 0; min-height: 0; background: none; color: var(--accent); text-align: left; cursor: pointer; }
+  input[type=text], input[type=date], select, textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  label { display: block; margin: 8px 0 3px; color: var(--muted); font-size: 12px; }
+  .unit { display: block; width: 100%; text-align: left; margin-bottom: 6px; }
+  .unit.selected { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: #e8ecf1; color: var(--muted); white-space: nowrap; }
+  #model { white-space: normal; border-radius: 6px; padding: 4px 10px; }
+  .pill.PASS, .pill.accepted, .pill.available, .pill.active { background: #dff3e7; color: var(--ok); }
+  .pill.FAIL, .pill.rejected, .pill.damaged, .pill.urgent, .pill.high { background: #fbe3e1; color: var(--bad); }
+  .pill.NOT_DETERMINABLE, .pill.review, .pill.worn, .pill.unclear, .pill.unverified, .pill.missing, .pill.contradiction, .pill.suspicious { background: #fbf0d9; color: var(--warn); }
+  .rows { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; } th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-top: 1px solid var(--line); }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; border-top: 0; }
+  tr.rejected td:nth-child(2) { text-decoration: line-through; color: var(--muted); }
+  .muted { color: var(--muted); } .small { font-size: 12px; } .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .quote { font-style: italic; }
+  td .actions { flex-wrap: nowrap; } td button { padding: 3px 8px; min-height: 28px; font-size: 12px; }
+  .sticky { position: sticky; top: 12px; align-self: start; }
+  .doc { max-height: 520px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px; background: var(--bg); }
+  .doc p { margin: 0 0 8px; padding: 4px 6px; border-radius: 4px; } .doc p.hit { background: #fff; outline: 2px solid var(--accent); }
+  mark { background: #ffe58a; }
+  .notice { padding: 10px 12px; border-radius: 6px; background: #fbe3e1; color: var(--bad); margin: 10px 0; }
+  .banner { padding: 8px 12px; border-radius: 6px; background: #fbf0d9; color: var(--warn); }
+  .photos { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; } .photos figure { margin: 0; font-size: 12px; color: var(--muted); }
+  .photos img { display: block; width: 120px; height: 90px; object-fit: cover; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; margin: 0; }
+  #error { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 560px; margin: auto; z-index: 5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Units, leases and issues</h1>
+  <span id="model" class="pill review" hidden></span>
+</header>
+<div class="layout">
+  <aside id="sidebar"></aside>
+  <main id="main"></main>
+</div>
+<div id="error"></div>
+
+<script>
+const state = { overview: null, unitId: null, leaseId: null, detail: null, editing: null, source: null, blocked: null, busy: false };
+const $ = (selector, root = document) => root.querySelector(selector);
+// Everything rendered below comes from uploads or a model, so all of it is escaped.
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pill = (value, label) => `<span class="pill ${esc(value)}">${esc(label ?? String(value).replaceAll("_", " ").toLowerCase())}</span>`;
+
+async function api(method, url, body) {
+  const options = { method };
+  if (body instanceof FormData) options.body = body;
+  else if (body) { options.headers = { "Content-Type": "application/json" }; options.body = JSON.stringify(body); }
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data.detail;
+    const message = typeof detail === "string" ? detail : detail?.message ?? (Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") : `Request failed (${response.status})`);
+    throw Object.assign(new Error(message), { detail });
+  }
+  return data;
+}
+
+async function refresh() {
+  state.overview = await api("GET", "/api/overview");
+  if (state.leaseId) {
+    const lease = await api("GET", `/api/leases/${state.leaseId}`);
+    if (lease.proposed_unit) { state.unitId = lease.proposed_unit; state.leaseId = null; }
+    else state.detail = { unit: null, leases: [lease], issues: [] };
+  }
+  if (state.unitId) state.detail = await api("GET", `/api/units/${encodeURIComponent(state.unitId)}`);
+  else if (!state.leaseId) state.detail = null;
+  render();
+}
+
+function render() {
+  const { overview, detail } = state;
+  $("#model").hidden = overview.model !== "stub";
+  $("#model").textContent = "Demo mode: no API key is set, so leases are read by simple text matching and photos are not analysed.";
+  $("#sidebar").innerHTML = sidebar(overview);
+  $("#main").innerHTML = !detail ? `<div class="card muted">Upload a lease, or pick a unit to see its lease and the issues raised on it.</div>`
+    : (detail.unit ? unitHeader(detail.unit) : `<div class="card banner">This lease is not matched to a unit yet. Set "Matched unit" below to file it.</div>`)
+      + (detail.leases.map(leaseCard).join("") || `<div class="card muted">No lease on this unit yet.</div>`)
+      + (detail.unit ? issuesSection(detail) : "");
+  $(".doc p.hit")?.scrollIntoView({ block: "nearest" });
+}
+
+function sidebar(overview) {
+  const busy = state.busy ? "disabled" : "";
+  const units = overview.units.map((u) => `
+    <button class="unit ${u.unit_id === state.unitId ? "selected" : ""}" data-act="unit" data-id="${esc(u.unit_id)}">
+      <strong>${esc(u.label)}</strong> <span class="muted">${esc(u.building_name)}</span><br>
+      ${pill(u.status)} ${u.leases.map((l) => pill(l.status, `lease: ${l.status}`)).join(" ")}
+      ${u.pending_issues ? pill("review", `${u.pending_issues} issue${u.pending_issues > 1 ? "s" : ""} to review`) : ""}
+    </button>`).join("");
+  const unmatched = overview.unmatched_leases.map((l) => `<button class="unit ${l.id === state.leaseId ? "selected" : ""}" data-act="lease" data-id="${l.id}">${esc(l.filename)}</button>`).join("");
+  return `
+    <form class="card" id="lease-form">
+      <h2>Add a lease</h2>
+      <input type="file" name="file" accept=".pdf,.docx,.txt,.md" required>
+      <p><button class="primary" ${busy}>${state.busy === "lease" ? "Reading the lease..." : "Upload and read"}</button></p>
+    </form>
+    <div class="card"><h2>Units</h2>${units}</div>
+    ${unmatched ? `<div class="card"><h2>Leases with no unit</h2>${unmatched}</div>` : ""}`;
+}
+
+const unitHeader = (u) => `
+  <div class="card"><h2>${esc(u.label)}, ${esc(u.building_name)} ${pill(u.status)}</h2>
+  <span class="muted">${esc(u.property_name)} · ${esc(u.unit_id)} · ${esc(u.type)} · ${esc(u.area_sqm)} sqm · parking ${esc(u.parking_bay)}</span></div>`;
+
+
+const show = (value) => value === null || value === undefined ? `<span class="muted">not found</span>` : value === true ? "Yes" : value === false ? "No" : typeof value === "number" ? value.toLocaleString("en") : esc(value);
+const decide = (act, data, decision) => ["accepted", "rejected"].map((d) =>
+  `<button class="${decision === d ? "on" : ""}" data-act="${act}" ${data} data-decision="${decision === d ? "pending" : d}">${d === "accepted" ? "Accept" : "Reject"}</button>`).join("");
+const sourceLink = (leaseId, segment, quote) => !quote ? "" : !segment ? `<span class="quote">"${esc(clip(quote))}"</span>`
+  : `<button class="link quote" data-act="source" data-lease="${leaseId}" data-seg="${esc(segment)}" data-quote="${esc(quote)}">"${esc(clip(quote))}"</button>`;
+const clip = (text) => text.length > 90 ? `${text.slice(0, 90)}...` : text;
+
+function fieldRow(lease, f) {
+  const key = `${lease.id}:${f.name}`, data = `data-lease="${lease.id}" data-name="${f.name}"`;
+  let value = show(f.effective ?? f.value);
+  if (f.override !== null) value = `${show(f.override)} <span class="muted small">corrected${f.value !== null ? ` from ${show(f.value)}` : ""}</span>`;
+  if (state.editing === key) {
+    const current = f.override ?? f.value ?? "";
+    const input = f.kind === "bool" ? `<select id="edit"><option value="true" ${current === true ? "selected" : ""}>Yes</option><option value="false" ${current === false ? "selected" : ""}>No</option></select>`
+      : f.name === "unit_id" ? `<select id="edit">${state.overview.units.map((u) => `<option ${u.unit_id === current ? "selected" : ""}>${esc(u.unit_id)}</option>`).join("")}</select>`
+      : `<input id="edit" type="${f.kind === "date" ? "date" : "text"}" value="${esc(current)}">`;
+    value = `${input}<div class="actions" style="margin-top:6px"><button class="primary" data-act="save-field" ${data}>Save</button><button data-act="cancel-edit">Cancel</button></div>`;
+  }
+  const source = f.quote ? sourceLink(lease.id, f.segment, f.quote) + (f.cited ? "" : ` ${pill("unverified", "quote not in document")}`)
+    : f.override !== null ? `<span class="muted small">entered by reviewer</span>` : "";
+  return `<tr class="${f.decision}"><td>${esc(f.label)}</td><td>${value}</td><td class="small">${source}</td>
+    <td><div class="actions">${f.value !== null || f.override !== null ? decide("field", data, f.decision) : ""}<button data-act="edit" data-key="${key}">${f.value === null && f.override === null ? "Enter" : "Edit"}</button></div></td></tr>`;
+}
+
+function leaseCard(lease) {
+  const source = state.source?.lease === lease.id ? state.source : null;
+  const segments = lease.segments.map((s) => {
+    let text = esc(s.text);
+    const hit = source?.seg === s.id;
+    if (hit) {  // highlight the quote inside its segment, matching the server's whitespace-insensitive check
+      const needle = source.quote.replace(/\s+/g, " ").trim().toLowerCase(), at = s.text.toLowerCase().indexOf(needle);
+      if (at >= 0) text = `${esc(s.text.slice(0, at))}<mark>${esc(s.text.slice(at, at + needle.length))}</mark>${esc(s.text.slice(at + needle.length))}`;
+    }
+    return `<p class="${hit ? "hit" : ""}"><span class="muted small">${esc(s.id)}${s.page ? `, page ${s.page}` : ""}</span> ${text}</p>`;
+  }).join("");
+  const flags = lease.flags.map((f) => `<tr class="${f.decision}"><td>${pill(f.kind)}</td>
+    <td>${esc(f.message)}<div class="small">${sourceLink(lease.id, f.segment, f.quote)}</div></td>
+    <td><div class="actions">${["accepted", "rejected"].map((d) => `<button class="${f.decision === d ? "on" : ""}" data-act="flag" data-id="${f.id}" data-decision="${f.decision === d ? "pending" : d}">${d === "accepted" ? "Confirm" : "Dismiss"}</button>`).join("")}</div></td></tr>`).join("");
+  const labels = Object.fromEntries(lease.fields.map((f) => [f.name, f.label]));
+  const rules = lease.rules.map((r) => `<tr><td><strong>${esc(r.id)}</strong> <span class="muted small">${esc(r.severity)}</span></td><td>${esc(r.description)}</td>
+    <td>${pill(r.status)}</td><td>${esc(r.reason)}<div class="muted small">Based on: ${esc(r.fields.map((n) => labels[n]).join(", "))}</div></td></tr>`).join("");
+  const blocked = state.blocked?.lease === lease.id ? `<div class="notice">${esc(state.blocked.message)} Linking anyway records that you have seen them.
+    <button data-act="link" data-lease="${lease.id}" data-ack="1">Link anyway</button></div>` : "";
+  const link = lease.status === "active" ? `<span class="muted">Linked to ${esc(lease.unit_id)}. The unit is marked occupied.</span>`
+    : `<button class="primary" data-act="link" data-lease="${lease.id}">Link lease and mark unit occupied</button>`;
+  return `<div class="card">
+    <h2>Lease: ${esc(lease.filename)} ${pill(lease.status, lease.status === "review" ? "in review" : "active")}</h2>
+    <p class="muted">${esc(lease.summary)}</p>${blocked}<div class="actions">${link}</div>
+    <div class="split">
+      <div><h3>Extracted fields</h3><div class="rows"><table><tr><th>Field</th><th>Value</th><th>Source</th><th>Review</th></tr>${lease.fields.map((f) => fieldRow(lease, f)).join("")}</table></div></div>
+      <div class="sticky"><h3>Document</h3><div class="doc">${segments}</div></div>
+    </div>
+    <h3>Flags to check</h3>${flags ? `<div class="rows"><table>${flags}</table></div>` : `<span class="muted">None.</span>`}
+    <h3>Owner rules</h3><div class="rows"><table><tr><th>Rule</th><th>Requirement</th><th>Result</th><th>Reason</th></tr>${rules}</table></div>
+    ${traceBlock(lease.trace)}
+  </div>`;
+}
+
+const traceBlock = (trace) => `<details><summary class="muted" style="margin-top:12px;cursor:pointer">Show the working (${trace.length} steps)</summary>
+  <pre>${trace.map((t, i) => `${i + 1}. ${esc(t.tool)}(${esc(JSON.stringify(t.args))})\n   ${t.error ? "ERROR " : ""}${esc(clip(String(t.result)))}`).join("\n")}</pre></details>`;
+
+
+function issuesSection(detail) {
+  const busy = state.busy ? "disabled" : "";
+  return `<div class="card">
+    <h2>Issues on this unit</h2>
+    ${detail.issues.map(issueCard).join("") || `<p class="muted">No issues reported.</p>`}
+    <form id="issue-form">
+      <h3>Report an issue</h3>
+      <label>Photos of the unit</label><input type="file" name="photos" accept="image/jpeg,image/png,image/gif,image/webp" multiple required>
+      <label>What is wrong (optional)</label><textarea name="note" rows="2" maxlength="2000"></textarea>
+      <label>Reported by</label><select name="reporter" style="max-width:200px"><option value="tenant">Tenant</option><option value="inspector">Inspector</option></select>
+      <p><button class="primary" ${busy}>${state.busy === "issue" ? "Assessing the photos..." : "Submit report"}</button></p>
+    </form>
+  </div>`;
+}
+
+function issueCard(issue) {
+  const { overview } = state, order = issue.work_order;
+  const options = (values, current) => values.map((v) => `<option ${v === current ? "selected" : ""}>${esc(v)}</option>`).join("");
+  const observations = issue.observations.map((o) => `<tr><td>Photo ${esc(o.photo)}</td><td>${esc(o.item)}</td><td>${pill(o.condition)}</td><td>${esc(o.damage)}</td></tr>`).join("");
+  return `<div class="card" data-issue="${issue.id}">
+    <strong>#${issue.id} ${esc(order.title)}</strong> ${pill(issue.decision, issue.decision === "pending" ? "draft, awaiting review" : `work order ${issue.decision}`)}
+    <div class="muted small">Reported by ${esc(issue.reporter)} on ${esc(issue.created_at)} UTC. ${esc(issue.summary)}</div>
+    ${issue.note ? `<p>"${esc(issue.note)}"</p>` : ""}
+    <div class="photos">${issue.photos.map((p, i) => `<figure><a href="/uploads/${esc(p.file)}" target="_blank" rel="noopener"><img src="/uploads/${esc(p.file)}" alt="Photo ${i + 1}"></a>Photo ${i + 1}: ${esc(p.name)}</figure>`).join("")}</div>
+    <div class="split">
+      <div><h3>Observations</h3>
+        <div class="rows"><table><tr><th>Photo</th><th>Item</th><th>Condition</th><th>Damage</th></tr>${observations}</table></div>
+        <label>Overall condition (change it if it is wrong)</label><select name="condition" style="max-width:200px">${options(overview.conditions, issue.condition)}</select>
+        <div class="muted small">${esc(issue.condition_reason)}</div>
+      </div>
+      <div><h3>Draft work order</h3>
+        <label>Title</label><input type="text" name="title" maxlength="200" value="${esc(order.title)}">
+        <label>What is wrong</label><textarea name="description" rows="3" maxlength="5000">${esc(order.description)}</textarea>
+        <label>Priority</label><select name="priority">${options(overview.priorities, order.priority)}</select>
+        <label>Trade</label><input type="text" name="trade" maxlength="100" value="${esc(order.trade)}">
+      </div>
+    </div>
+    <div class="actions" style="margin-top:10px"><button data-act="issue" data-id="${issue.id}">Save edits</button>${decide("issue", `data-id="${issue.id}"`, issue.decision)}</div>
+    ${traceBlock(issue.trace)}
+  </div>`;
+}
+
+
+const actions = {
+  unit: (d) => { location.hash = d.id; Object.assign(state, { unitId: d.id, leaseId: null, editing: null, source: null, blocked: null }); },
+  lease: (d) => Object.assign(state, { leaseId: Number(d.id), unitId: null, editing: null, source: null, blocked: null }),
+  source: (d) => { state.source = { lease: Number(d.lease), seg: d.seg, quote: d.quote }; render(); return false; },
+  edit: (d) => { state.editing = d.key; render(); return false; },
+  "cancel-edit": () => { state.editing = null; render(); return false; },
+  field: (d) => api("PATCH", `/api/leases/${d.lease}/fields/${d.name}`, { decision: d.decision }),
+  "save-field": async (d) => {
+    await api("PATCH", `/api/leases/${d.lease}/fields/${d.name}`, { value: $("#edit").value });
+    state.editing = null;
+    if (!state.unitId) state.leaseId = Number(d.lease);
+  },
+  flag: (d) => api("PATCH", `/api/flags/${d.id}`, { decision: d.decision }),
+  link: async (d) => {
+    try {
+      await api("POST", `/api/leases/${d.lease}/link`, { acknowledge_failures: Boolean(d.ack) });
+      state.blocked = null;
+    } catch (error) {
+      if (!error.detail?.blocking_rules) throw error;
+      state.blocked = { lease: Number(d.lease), message: error.detail.message };
+    }
+  },
+  issue: (d, el) => {
+    const card = el.closest("[data-issue]"), get = (name) => $(`[name=${name}]`, card).value;
+    return api("PATCH", `/api/issues/${d.id}`, { decision: d.decision, condition: get("condition"),
+      work_order: { title: get("title"), description: get("description"), priority: get("priority"), trade: get("trade") } });
+  },
+};
+
+function fail(error) {
+  $("#error").innerHTML = `<div class="notice">${esc(error.message)}</div>`;
+  setTimeout(() => { $("#error").innerHTML = ""; }, 6000);
+}
+
+document.addEventListener("click", async (event) => {
+  const el = event.target.closest("[data-act]");
+  if (!el) return;
+  event.preventDefault();
+  try { if (await actions[el.dataset.act](el.dataset, el) !== false) await refresh(); } catch (error) { fail(error); }
+});
+
+document.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.target, kind = form.id === "lease-form" ? "lease" : "issue";
+  const body = new FormData(form);  // read before re-rendering replaces the form
+  state.busy = kind; render();
+  try {
+    if (kind === "lease") {
+      const lease = await api("POST", "/api/leases", body);
+      Object.assign(state, lease.proposed_unit ? { unitId: lease.proposed_unit, leaseId: null } : { unitId: null, leaseId: lease.id });
+    } else await api("POST", `/api/units/${encodeURIComponent(state.unitId)}/issues`, body);
+  } catch (error) { fail(error); }
+  state.busy = false;
+  await refresh().catch(fail);
+});
+
+state.unitId = decodeURIComponent(location.hash.slice(1)) || null;  // a unit is linkable as /#MC-B-1204
+refresh().catch(fail);
+</script>
+</body>
+</html>

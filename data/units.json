@@ -1,0 +1,29 @@
+{
+  "ownership_entity": "Marina Crest Holdings W.L.L.",
+  "properties": [
+    {
+      "property_id": "PROP-MC",
+      "name": "Marina Crest Residences",
+      "location": "Lusail Marina District, Doha",
+      "buildings": [
+        {
+          "building_id": "MC-B",
+          "name": "Tower B",
+          "units": [
+            { "unit_id": "MC-B-1204", "label": "Apartment 1204", "type": "2BR", "area_sqm": 118, "parking_bay": "B-77", "status": "available" },
+            { "unit_id": "MC-B-1205", "label": "Apartment 1205", "type": "2BR", "area_sqm": 121, "parking_bay": "B-78", "status": "occupied" },
+            { "unit_id": "MC-B-0902", "label": "Apartment 0902", "type": "1BR", "area_sqm": 74,  "parking_bay": "B-51", "status": "available" }
+          ]
+        },
+        {
+          "building_id": "MC-A",
+          "name": "Tower A",
+          "units": [
+            { "unit_id": "MC-A-0301", "label": "Apartment 0301", "type": "3BR", "area_sqm": 156, "parking_bay": "A-12", "status": "available" },
+            { "unit_id": "MC-A-0302", "label": "Apartment 0302", "type": "3BR", "area_sqm": 156, "parking_bay": "A-13", "status": "occupied" }
+          ]
+        }
+      ]
+    }
+  ]
+}
